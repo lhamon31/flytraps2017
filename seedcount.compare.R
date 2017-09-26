@@ -101,7 +101,7 @@ summary(control$blackseeds)
 #mean = 19.36, sd=9.184169
 #1st-3rd Quartile = 13-25.5
 #range = 0-41
-#test change 2
+#test change 3
 
 ########################################################################################################
 #examine seedcount by fire regime
