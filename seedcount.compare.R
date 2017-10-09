@@ -269,8 +269,6 @@ ggplot(scapedat, aes(x=stalkheightcm, y=blackseeds))+
 #seed set vs. days since burn w/ burn as a continuous variable 
   #subsetted by treatment, site as a random effect
   
-dat <- dat[ which(dat$treatment=='control'), ]
-  
 #make sure it all comes out as a date
 dat$HPdate<-as.Date(dat$HPdate, format="%m/%d/%Y")
 
@@ -278,22 +276,21 @@ dat$HPdate<-as.Date(dat$HPdate, format="%m/%d/%Y")
 dat$dayssinceburn <- dat$HPdate - dat$fire
 
 #calculate avg seed weight of diff. fire regimes and treatments
-fireseedwt<-aggregate(dat$perseedweight, list(dat$fire,dat$treatment), mean, na.rm=TRUE)
+fireseedwt<-aggregate(dat$perseedweight, list(dat$treatment,dat$fire), mean, na.rm=TRUE)
 colnames(fireseedwt)<-c("treatment","fire", "fireseedwt")
-dat2<-merge(dat, fireseedwt, by.x=c('treatment','fire'), by.y=c('treatment','fire'), all.x = T, all.y = T)
+dat<-merge(dat, fireseedwt, by.x=c('treatment','fire'), by.y=c('treatment','fire'), all.x = T, all.y = T)
 
+#regression where y=seedset, x=days since burn
+library(nlme)
+mod<- lme(fireseedwt ~ dayssinceburn*treatment, random=~1|site, method="ML", data=dat, na.action=na.exclude)
+summary(mod)
 
 #create regression plot
 library(ggplot2)
 ggplot(dat, aes(x = dayssinceburn, y = fireseedwt, col=treatment)) +
   geom_point(shape=16) +   
-  geom_smooth(method=lm) +
+  geom_smooth(method=lm,se=FALSE) +
   xlab("Days Since Last Burn") +
   ylab("Avg Seed Weight(mm)")
 
 
-  
-
-#regression where y=seedset, x=days since burn
-mod <- lm(blackseeds ~ dayssinceburn:treatment, data = dat, random=~1|site)
-summary(mod)
