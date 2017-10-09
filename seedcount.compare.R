@@ -18,25 +18,20 @@ dat$plant<-as.numeric(as.character(dat$plant))
                            c2 = c("02/03/2016","03/29/2017","03/10/2014","06/20/2016","03/10/2014","05/13/2013","06/22/2016","06/22/2016"))
   dat$fire <- firelabels$c2[match(dat$site,firelabels$c1)]
   #convert fire date column to date
-  dat$fire <- as.Date(dat$fire, "%m/%d/%Y")
+  dat$fire <- as.Date(dat$fire, format="%m/%d/%Y")
 
 ##merge flower/bud/trap number and scape height info 
   plantdat<-read.csv("C:/Users/lhamo/Documents/flytraps.fall.2017/data/handpollination.2017.csv")
   #remove unncecessary columns for ease
-  plantdat <- plantdat[c(4:6,8:9)]
-  colnames(plantdat)<-c("plant","flowers","buds","stalkheightcm","traps")
+  plantdat <- plantdat[c(4,2,5:6,8:9)]
+  colnames(plantdat)<-c("plant","HPdate","flowers","buds","stalkheightcm","traps")
   #combine flower/bud data
   plantdat$flowerbud <- plantdat$flowers + plantdat$buds
   dat<-merge(dat, plantdat, by.x=c('plant'), by.y=c('plant'), all.x = T, all.y = T)
   #note that merging this adds observations for 124 and 126 because these don't exist in the seedset dat
   
-##create avg seed weight (over whole plant) column
-  aggdat <- aggregate(`bulkweightblackseeds(mg)`~plant,dat,sum)
-  aggdat2<-aggregate(blackseeds~plant,dat,sum)
-  aggdat3<-merge(aggdat, aggdat2, by.x=c('plant'), by.y=c('plant'), all.x = T, all.y = T)
-  aggdat3$perseedweight<-aggdat3$`bulkweightblackseeds(mg)`/aggdat3$blackseeds
-  aggdat3<-aggdat3[c(1,4)]
-  dat<-merge(dat, aggdat3, by.x=c('plant'), by.y=c('plant'), all.x = T, all.y = T)
+##create avg seed weight (over capsule) column
+  dat$perseedweight<-dat$`bulkweightblackseeds(mg)`/dat$blackseeds
 
 #make sure grouping factors are uniform
   dat$treatment <- gsub("control ","control", dat$treatment)
@@ -44,8 +39,8 @@ dat$plant<-as.numeric(as.character(dat$plant))
 #remove one where there wasn't even a capsule to be counted
   dat<-dat[ ! ( dat$plant == "62") , ] 
 #omit the NAs that emerged from the merge
-  dat<-dat[ ! ( dat$plant == "124.0") , ] 
-  dat<-dat[ ! ( dat$plant == "126.0") , ] 
+  dat<-dat[ ! ( dat$plant == "124") , ] 
+  dat<-dat[ ! ( dat$plant == "126") , ] 
   
 #########################################################################################################
 #simple seed count statistics
@@ -80,8 +75,9 @@ t.test(formula = blackseeds ~ treatment,
 
 #create a boxplot 
 library(ggplot2)
+fill <- "palegreen1"
 ggplot(HPdat, aes(x = treatment, y = blackseeds)) +
-  geom_boxplot(colour = "black") + 
+  geom_boxplot(fill=fill, colour = "black") + 
   xlab("Treatment") +
   ylab("Seed Set")+
   scale_x_discrete(labels=c("control" = "control", "HP" = "hand-pollinated")) +
@@ -112,7 +108,7 @@ firedat<-dat
 firedat$fire <- factor(firedat$fire, ordered = T)
 
 #does seed count differ by fire regime?
-fire.mod <- lm(perseedweight ~ fire, data = firedat)
+fire.mod <- lm(blackseeds ~ fire, data = firedat)
 summary(fire.mod)
 anova(fire.mod)
 #by fire: F(5,153)=1.198, p=0.31
@@ -121,7 +117,7 @@ anova(fire.mod)
 #create a boxplot 
 library(ggplot2)
 
-ggplot(firedat, aes(x = fire, y = perseedweight)) +
+ggplot(firedat, aes(x = fire, y = blackseeds)) +
   geom_boxplot(colour = "black") + 
   xlab("Date of Last Fire") +
   ylab("Average Seed Weight (mg)")+
@@ -269,4 +265,35 @@ ggplot(scapedat, aes(x=stalkheightcm, y=blackseeds))+
           panel.background = element_blank(), axis.line = element_line(colour = "black"))
   
 
-#where's 93, 124.2, 
+###################################################################################################
+#seed set vs. days since burn w/ burn as a continuous variable 
+  #subsetted by treatment, site as a random effect
+  
+dat <- dat[ which(dat$treatment=='control'), ]
+  
+#make sure it all comes out as a date
+dat$HPdate<-as.Date(dat$HPdate, format="%m/%d/%Y")
+
+#find days since burn (here I use the hand pollination date as the starting point)
+dat$dayssinceburn <- dat$HPdate - dat$fire
+
+#calculate avg seed weight of diff. fire regimes and treatments
+fireseedwt<-aggregate(dat$perseedweight, list(dat$fire,dat$treatment), mean, na.rm=TRUE)
+colnames(fireseedwt)<-c("treatment","fire", "fireseedwt")
+dat2<-merge(dat, fireseedwt, by.x=c('treatment','fire'), by.y=c('treatment','fire'), all.x = T, all.y = T)
+
+
+#create regression plot
+library(ggplot2)
+ggplot(dat, aes(x = dayssinceburn, y = fireseedwt, col=treatment)) +
+  geom_point(shape=16) +   
+  geom_smooth(method=lm) +
+  xlab("Days Since Last Burn") +
+  ylab("Avg Seed Weight(mm)")
+
+
+  
+
+#regression where y=seedset, x=days since burn
+mod <- lm(blackseeds ~ dayssinceburn:treatment, data = dat, random=~1|site)
+summary(mod)
