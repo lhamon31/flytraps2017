@@ -13,12 +13,22 @@ dat$blackseeds<-as.numeric(as.character(dat$blackseeds))
 dat$`bulkweightblackseeds(mg)`<-as.numeric(as.character(dat$`bulkweightblackseeds(mg)`))
 dat$plant<-as.numeric(as.character(dat$plant))
 
-##insert fire regime column
+##insert fire regime column (done manually for now)
   firelabels <- data.frame(c1 = c("HS1","HS12","HS15","HS16","HS2","HS3","HS6","HS9"), 
                            c2 = c("02/03/2016","03/29/2017","03/10/2014","06/20/2016","03/10/2014","05/13/2013","06/22/2016","06/22/2016"))
   dat$fire <- firelabels$c2[match(dat$site,firelabels$c1)]
   #convert fire date column to date
   dat$fire <- as.Date(dat$fire, format="%m/%d/%Y")
+
+##insert bloom area category (done manually for now)
+  bloomarealabels <- data.frame(c1=c("HS1","HS12","HS15","HS16","HS2","HS3","HS6","HS9"),
+                              c2=c(8914, 12252, 687, 12164, 131, 695, 317, 14860))
+  dat$bloomarea <- bloomarealabels$c2[match(dat$site, bloomarealabels$c1)]
+
+##insert bloom area category (done manually for now)
+  areacategorylabels <- data.frame(c1=c("HS1","HS12","HS15","HS16","HS2","HS3","HS6","HS9"),
+                                c2=c("L","L","M","L","S","M","S","L"))
+  dat$areacategory <- areacategorylabels$c2[match(dat$site, areacategorylabels$c1)]
 
 ##merge flower/bud/trap number and scape height info 
   plantdat<-read.csv("C:/Users/lhamo/Documents/flytraps.fall.2017/data/handpollination.2017.csv")
@@ -51,6 +61,38 @@ summary(dat$blackseeds, na.rm=TRUE)
 #median = 21
 #1st-3rd Quartile = 14-26
 #range = 0-44
+
+#########################################################################################################
+#figuring out what seeds we want for germination trials 
+summary(dat$perseedweight)
+sd(dat$perseedweight, na.rm=TRUE)
+#mean= 0.25660
+  #sd= 0.08278129
+#median= 0.22410
+#1st-3rd quartile= 0.18960-0.32550
+#range= 0.08506-0.48420
+
+classcounts<-hist(dat$perseedweight)
+classcounts$counts
+
+#class counts
+Scount <-dat[which(dat$perseedweight<0.2091611),] 
+Scount <- Scount[order(Scount$perseedweight),] 
+  #127 packets
+Mcount <- dat[which(dat$perseedweight>0.2091611 & dat$perseedweight<0.2327625),]
+Mcount <- Mcount[order(Mcount$perseedweight),] 
+  #33 packets
+Lcount <- dat[which(dat$perseedweight>0.2327625),] 
+Lcount <- Lcount[order(Lcount$perseedweight),] 
+  #147 packets 
+
+#proposed classes:
+#started with interquartile ranges:
+  #small= smallest-first quartile (0.08506-0.18960)
+  #middle= first quartile- third quartile (0.18960-0.32550)
+  #large= third quartile- largest (0.32550-0.48420)
+#adjusted ends to include all sites and treatments
+#final choices will come from weighing individual seeds
 
 ##########################################################################################################
 #comparing seed set between hand-pollinated and control flowers
@@ -101,14 +143,14 @@ summary(control$blackseeds)
 
 ########################################################################################################
 #examine seedcount by fire regime
-dat <- dat[ which(dat$treatment=='control'), ]
 firedat<-dat
 
 #get date to display chronologically in results
 firedat$fire <- factor(firedat$fire, ordered = T)
 
 #does seed count differ by fire regime?
-fire.mod <- lm(blackseeds ~ fire, data = firedat)
+library(nlme)
+fire.mod <- lme(blackseeds ~ fire*treatment, random=~1|site, method="ML", data = firedat)
 summary(fire.mod)
 anova(fire.mod)
 #by fire: F(5,153)=1.198, p=0.31
@@ -129,7 +171,7 @@ ggplot(firedat, aes(x = fire, y = blackseeds)) +
 #control: fire no, site yes
 
 #########################################################################################################
-#a bunch of different linear models
+#a bunch of different mixed linear models
 #########################################################################################################
 #question: should i use just control, or combo HP+control for subsequent analyses?
   #do seed number and seed weight have anything 2 do w/ each other
