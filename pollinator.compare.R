@@ -1,12 +1,19 @@
 #load pollinator data
 pollinatordat<-read.csv("C:/Users/lhamo/Documents/flytraps.fall.2017/data/pollinators.2017.csv")
-
 names(pollinatordat) <- as.matrix(pollinatordat[3, ]) #names column headers
 pollinatordat <- pollinatordat[-c(1:3), ] #removes first 3 useless rows
-
 #make header titles r-friendly
 colnames(pollinatordat) <- gsub(" ","",colnames(pollinatordat))
 colnames(pollinatordat) <- gsub("#","",colnames(pollinatordat))
+
+#load pollen richness data
+richnessdat<-read.csv("C:/Users/lhamo/Documents/flytraps.fall.2017/data/pollen.richness.2017.csv")
+names(richnessdat) <- as.matrix(richnessdat[5, ]) #names column headers
+richnessdat <- richnessdat[-c(1:5), ] #removes first 5 useless rows
+#make header titles r-friendly
+colnames(richnessdat) <- gsub(" ","",colnames(richnessdat))
+colnames(richnessdat) <- gsub("#","",colnames(richnessdat))
+colnames(richnessdat)[3] <- "InsectID" #makes column names the same for later merging
 
 ###############################################################################################
 #load sampling effort data
@@ -35,4 +42,25 @@ sum(effortdat$Minobservation)
 #sum sampling effort by site and time
 aggregate(Minobservation ~ Site, effortdat, sum)
 aggregate(effortdat$Minobservation, list(effortdat$Site,effortdat$Date), sum )
+
+############################################################################################################
+#rough estimate of most frequent pollen carriers from 2017
+#remove spaces
+pollinatordat$Genus <- gsub(" ","", pollinatordat$Genus)
+pollinatordat$Species <- gsub(" ","", pollinatordat$Species)
+
+#replace blanks with NAs
+pollinatordat$Genus<-sub("^$", "NA", pollinatordat$Genus)
+pollinatordat$Species<-sub("^$", "NA", pollinatordat$Species)
+
+#create species ID
+pollinatordat$speciesID<-paste(pollinatordat$Genus,pollinatordat$Species, sep=".")
+
+#species counts
+counts<-data.frame(count(pollinatordat$speciesID))
+counts <- counts[order(-counts$freq),] 
+
+####merge pollinator dat and pollen richness dat
+#removed leg data for now because it will complicate things 
+
 

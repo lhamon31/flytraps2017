@@ -64,35 +64,41 @@ summary(dat$blackseeds, na.rm=TRUE)
 
 #########################################################################################################
 #figuring out what seeds we want for germination trials 
-summary(dat$perseedweight)
-sd(dat$perseedweight, na.rm=TRUE)
+sizedat <- dat
+sizedat <- sizedat[order(sizedat$perseedweight),] 
+summary(sizedat$perseedweight)
+sd(sizedat$perseedweight, na.rm=TRUE)
 #mean= 0.25660
   #sd= 0.08278129
 #median= 0.22410
 #1st-3rd quartile= 0.18960-0.32550
 #range= 0.08506-0.48420
 
-classcounts<-hist(dat$perseedweight)
+classcounts<-hist(sizedat$perseedweight)
 classcounts$counts
 
 #class counts
-Scount <-dat[which(dat$perseedweight<0.2091611),] 
-Scount <- Scount[order(Scount$perseedweight),] 
-  #127 packets
-Mcount <- dat[which(dat$perseedweight>0.2091611 & dat$perseedweight<0.2327625),]
-Mcount <- Mcount[order(Mcount$perseedweight),] 
-  #33 packets
-Lcount <- dat[which(dat$perseedweight>0.2327625),] 
-Lcount <- Lcount[order(Lcount$perseedweight),] 
-  #147 packets 
+Scount <- sizedat[1:103,]
+Scount <-sizedat[which(sizedat$perseedweight<0.1974401),] 
+  #missing: HS2
+Mcount <- sizedat[104:206,]
+Mcount <- sizedat[which(sizedat$perseedweight>0.1974400 & sizedat$perseedweight<0.2422334),]
+  #missing: HS1
+Lcount <- sizedat[207:318,]
+Lcount <- sizedat[which(sizedat$perseedweight>0.2430713),] 
+  #missing: none 
 
 #proposed classes:
-#started with interquartile ranges:
-  #small= smallest-first quartile (0.08506-0.18960)
-  #middle= first quartile- third quartile (0.18960-0.32550)
-  #large= third quartile- largest (0.32550-0.48420)
-#adjusted ends to include all sites and treatments
-#final choices will come from weighing individual seeds
+#order data by size, divide into 3 pieces
+#adjusted ends to include all sites (do treatments as well?)
+#most parsimoniously, sacrifice HS2 in the small class and HS1 in the middle class
+  #and pick those ones out by hand
+
+#need 100 seeds for each size class
+  #ideally 12-13 seeds for each site for each size class
+    #need both treatments if possible (6-7 seeds each treatment)
+    #need >1 maternal line if possible (as many maternal lines as possible )
+    
 
 ##########################################################################################################
 #comparing seed set between hand-pollinated and control flowers
